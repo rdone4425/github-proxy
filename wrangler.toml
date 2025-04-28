@@ -1,0 +1,13 @@
+[site]
+bucket = "./nav-site/frontend"
+entry-point = "."
+
+[build]
+command = "echo 'No build step required'"
+output_dir = "nav-site/frontend"
+
+[build.upload]
+format = "directory"
+
+[functions]
+directory = "nav-site/frontend/functions"
