@@ -1,0 +1,131 @@
+/**
+ * 主题样式
+ */
+
+/* 主题变量 - 浅色主题 (默认) */
+:root {
+    --primary-color: #4a6cf7;
+    --primary-hover: #3a5ce5;
+    --secondary-color: #6c757d;
+    --secondary-hover: #5a6268;
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #17a2b8;
+    --light-color: #f8f9fa;
+    --dark-color: #343a40;
+    --text-color: #333;
+    --text-secondary: #6c757d;
+    --bg-color: #fff;
+    --bg-secondary: #f8f9fa;
+    --border-color: #dee2e6;
+    --shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    --transition: all 0.3s ease;
+}
+
+/* 深色主题 */
+[data-theme="dark"] {
+    --primary-color: #5d7bf9;
+    --primary-hover: #4a6cf7;
+    --secondary-color: #adb5bd;
+    --secondary-hover: #bdc6ce;
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #17a2b8;
+    --light-color: #343a40;
+    --dark-color: #f8f9fa;
+    --text-color: #f8f9fa;
+    --text-secondary: #adb5bd;
+    --bg-color: #212529;
+    --bg-secondary: #343a40;
+    --border-color: #495057;
+    --shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+/* 主题选择器样式 */
+.theme-selector {
+    display: flex;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.theme-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: none;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.theme-option:hover {
+    border-color: var(--primary-color);
+}
+
+.theme-option.active {
+    border-color: var(--primary-color);
+    background-color: rgba(74, 108, 247, 0.1);
+}
+
+.theme-preview {
+    width: 60px;
+    height: 40px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    border: 1px solid var(--border-color);
+    position: relative;
+    overflow: hidden;
+}
+
+.theme-preview::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 8px;
+    background-color: var(--primary-color);
+}
+
+.light-theme {
+    background-color: #fff;
+}
+
+.dark-theme {
+    background-color: #212529;
+}
+
+.auto-theme {
+    background: linear-gradient(to right, #fff 50%, #212529 50%);
+}
+
+.theme-name {
+    font-size: 0.9rem;
+    color: var(--text-color);
+}
+
+/* 媒体查询 - 自动主题 */
+@media (prefers-color-scheme: dark) {
+    [data-theme="auto"] {
+        --primary-color: #5d7bf9;
+        --primary-hover: #4a6cf7;
+        --secondary-color: #adb5bd;
+        --secondary-hover: #bdc6ce;
+        --success-color: #28a745;
+        --danger-color: #dc3545;
+        --warning-color: #ffc107;
+        --info-color: #17a2b8;
+        --light-color: #343a40;
+        --dark-color: #f8f9fa;
+        --text-color: #f8f9fa;
+        --text-secondary: #adb5bd;
+        --bg-color: #212529;
+        --bg-secondary: #343a40;
+        --border-color: #495057;
+        --shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    }
+}

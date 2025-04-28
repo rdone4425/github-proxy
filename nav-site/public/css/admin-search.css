@@ -1,0 +1,58 @@
+/* 搜索框样式 */
+.panel-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.search-container {
+    display: flex;
+    align-items: center;
+    max-width: 300px;
+}
+
+.search-input {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 14px;
+    width: 100%;
+    transition: border-color 0.3s;
+}
+
+.search-input:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.2);
+}
+
+/* 暗色主题适配 */
+[data-theme="dark"] .search-input {
+    background-color: var(--bg-color-secondary);
+    color: var(--text-color);
+}
+
+/* 搜索结果高亮 */
+.highlight {
+    background-color: rgba(var(--primary-color-rgb), 0.2);
+    padding: 2px;
+    border-radius: 2px;
+}
+
+/* 搜索状态提示 */
+.search-status {
+    margin: 10px 0;
+    padding: 8px 12px;
+    background-color: var(--bg-color-secondary);
+    border-radius: 4px;
+    font-size: 14px;
+    color: var(--text-color-secondary);
+}
+
+/* 无搜索结果提示 */
+.no-results {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-color-secondary);
+    font-style: italic;
+}
