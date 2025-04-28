@@ -1,5 +1,0 @@
-# 将根路径重定向到 index.html
-/ /index.html 200
-
-# 将所有未匹配的路径重定向到 index.html (用于SPA)
-/* /index.html 200
