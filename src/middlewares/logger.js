@@ -1,6 +1,6 @@
 /**
  * 日志中间件
- * 
+ *
  * 提供日志记录功能
  */
 
@@ -56,20 +56,20 @@ const logger = winston.createLogger({
 // 请求日志中间件
 const requestLogger = (req, res, next) => {
   const start = Date.now();
-  
+
   // 记录请求开始
   logger.debug(`${req.method} ${req.originalUrl} 开始处理`);
-  
+
   // 更新API请求统计
   if (req.originalUrl.startsWith('/api')) {
     incrementStats('apiRequests');
   }
-  
+
   // 响应完成时记录
   res.on('finish', () => {
     const duration = Date.now() - start;
     const message = `${req.method} ${req.originalUrl} ${res.statusCode} ${duration}ms`;
-    
+
     // 根据状态码选择日志级别
     if (res.statusCode >= 500) {
       logger.error(message);
@@ -80,11 +80,15 @@ const requestLogger = (req, res, next) => {
       logger.info(message);
     }
   });
-  
+
   next();
 };
 
+// 确保导出所有Winston logger方法
 module.exports = {
-  ...logger,
+  error: logger.error.bind(logger),
+  warn: logger.warn.bind(logger),
+  info: logger.info.bind(logger),
+  debug: logger.debug.bind(logger),
   requestLogger
 };
