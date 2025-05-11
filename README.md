@@ -68,6 +68,17 @@ github-proxy/
 bash <(curl -Ls https://raw.githubusercontent.com/rdone4425/github-proxy/main/deploy.sh)
 ```
 
+如果遇到下载问题，也可以使用以下备用命令：
+
+```bash
+# 先下载部署脚本
+curl -Ls -o deploy.sh https://raw.githubusercontent.com/rdone4425/github-proxy/main/deploy.sh
+# 添加执行权限
+chmod +x deploy.sh
+# 运行部署脚本
+./deploy.sh
+```
+
 一键部署脚本会自动：
 - 检查并安装Docker和Docker Compose（如果需要）
 - 下载最新版本的GitHub代理服务代码
