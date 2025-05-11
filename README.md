@@ -1,6 +1,6 @@
 # GitHub 资源加速代理服务
 
-这是一个可以部署在Linux服务器上的GitHub资源加速代理服务，基于Node.js实现。它可以帮助你在网络受限的环境中快速访问GitHub上的资源。
+这是一个可以部署在服务器上的GitHub资源加速代理服务，基于Docker实现。它可以帮助你在网络受限的环境中快速访问GitHub上的资源。
 
 ## 功能特点
 
@@ -12,7 +12,7 @@
 - 🔧 **灵活配置**：支持多种代理策略（最快、随机、轮询）
 - 📦 **断点续传**：支持断点续传和多线程下载
 - 🔄 **自动更新**：自动维护和更新代理域名列表
-- 🌐 **多平台支持**：支持部署在任何Linux服务器上
+- 🐳 **Docker部署**：提供Docker一键部署，无需处理依赖问题
 
 ## 项目结构
 
@@ -55,89 +55,67 @@ github-proxy/
 
 ## 系统要求
 
-- Node.js 14.x 或更高版本
-- npm 6.x 或更高版本
-- 建议使用PM2进行进程管理
+- Docker 20.10.0 或更高版本
+- Docker Compose v2.0.0 或更高版本
+- 至少 512MB 内存
+- 至少 1GB 磁盘空间
 
 ## 安装部署
 
-### 方法一：一键安装脚本（推荐）
-
-使用以下命令可以一键安装GitHub代理服务：
+### 方法一：使用一键部署脚本（推荐）
 
 ```bash
-# 使用curl安装
-curl -fsSL https://raw.githubusercontent.com/rdone4425/github-proxy/main/install.sh | bash
-
-# 或者使用wget安装
-wget -O- https://raw.githubusercontent.com/rdone4425/github-proxy/main/install.sh | bash
+bash <(curl -Ls https://raw.githubusercontent.com/rdone4425/github-proxy/main/deploy.sh)
 ```
 
-安装脚本会自动：
-- 检查并安装所需依赖（Node.js、npm、PM2等）
-- 下载最新版本的GitHub代理服务
-- 配置环境变量
-- 启动服务并设置开机自启
-- 显示访问地址和管理Token
+一键部署脚本会自动：
+- 检查并安装Docker和Docker Compose（如果需要）
+- 下载最新版本的GitHub代理服务代码
+- 创建必要的目录和配置文件
+- 生成随机安全令牌
+- 构建并启动Docker容器
+- 显示服务访问信息和使用示例
 
-### 方法二：直接克隆
+### 方法二：仅启动服务（已部署过）
+
+如果你已经部署过服务，只需要启动它：
 
 ```bash
-# 克隆仓库
+cd github-proxy
+./docker-deploy.sh start
+```
+
+### 方法三：手动部署
+
+```bash
+# 下载代码
 git clone https://github.com/rdone4425/github-proxy.git
 cd github-proxy
 
-# 安装依赖
-npm install
+# 创建必要的目录
+mkdir -p data logs
 
-# 配置环境变量
-cp .env.example .env
-# 编辑.env文件，设置你的配置
+# 创建配置文件（如果不存在）
+cp .env.example .env  # 然后编辑 .env 文件设置你的配置
 
-# 启动服务
-npm start
+# 构建并启动容器
+docker-compose up -d
 ```
 
-### 方法三：使用启动脚本
-
-```bash
-# 克隆仓库
-git clone https://github.com/rdone4425/github-proxy.git
-cd github-proxy
-
-# 给启动脚本添加执行权限
-chmod +x start.sh
-
-# 运行启动脚本
-./start.sh
-```
-
-## 更新和卸载
-
-### 更新服务
+## 更新服务
 
 使用以下命令可以更新GitHub代理服务到最新版本：
 
 ```bash
-# 如果你使用的是一键安装脚本
-curl -fsSL https://raw.githubusercontent.com/rdone4425/github-proxy/main/update.sh | bash
+# 使用更新脚本
+./docker-update.sh
 
-# 或者在安装目录中运行
-cd /opt/github-proxy
-./update.sh
-```
+# 或者手动更新
+git pull
+docker-compose down
+docker-compose up -d --build
 
-### 卸载服务
 
-使用以下命令可以卸载GitHub代理服务：
-
-```bash
-# 如果你使用的是一键安装脚本
-curl -fsSL https://raw.githubusercontent.com/rdone4425/github-proxy/main/uninstall.sh | bash
-
-# 或者在安装目录中运行
-cd /opt/github-proxy
-./uninstall.sh
 ```
 
 ## 配置说明
@@ -175,10 +153,9 @@ PROXY_DOMAINS_FILE=./data/proxy.txt
 # 健康检查配置
 HEALTH_CHECK_INTERVAL=3600000  # 自动健康检查间隔（毫秒，默认1小时）
 
-# 安装配置
-SKIP_VERSION_CHECK=true  # 是否跳过Node.js版本检查
-AUTO_ACCEPT_INSTALL=true # 是否自动接受安装提示
-AUTO_RESTART=true        # 是否自动重启已存在的服务
+# Docker配置
+DOCKER_MEMORY_LIMIT=512M  # Docker容器内存限制
+DOCKER_CPU_LIMIT=1        # Docker容器CPU限制
 ```
 
 ## API接口说明
@@ -198,34 +175,28 @@ AUTO_RESTART=true        # 是否自动重启已存在的服务
 | 获取流量统计 | GET | `/api/stats?token=你的token` | 获取流量统计信息 |
 | 重置流量统计 | GET | `/api/stats/reset?token=你的token` | 重置流量统计信息 |
 
-## 使用PM2管理服务
+## 管理Docker容器
 
 ```bash
-# 安装PM2
-npm install -g pm2
-
-# 启动主服务
-pm2 start src/index.js --name "github-proxy"
-
-# 启动API服务器（可选）
-pm2 start src/api-server.js --name "github-proxy-api"
-
-# 查看状态
-pm2 status
+# 查看容器状态
+docker-compose ps
 
 # 查看日志
-pm2 logs github-proxy
-
-# 停止服务
-pm2 stop github-proxy
+docker-compose logs
+docker-compose logs -f  # 实时日志
 
 # 重启服务
-pm2 restart github-proxy
+docker-compose restart
 
-# 设置开机自启
-pm2 startup
-pm2 save
+# 停止服务
+docker-compose down
+
+# 更新服务
+git pull
+docker-compose up -d --build
 ```
+
+详细的Docker管理指南请参考 [Docker 部署指南](README.docker.md)。
 
 ## 使用Nginx反向代理
 

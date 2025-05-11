@@ -1,4 +1,4 @@
-version: '3'
+version: '3.8'
 
 services:
   github-proxy:
@@ -9,8 +9,8 @@ services:
     container_name: github-proxy
     restart: unless-stopped
     ports:
-      - "3000:3000"  # 主服务端口
-      - "3001:3001"  # API服务端口
+      - "${PORT:-3000}:3000"  # 主服务端口
+      - "${API_PORT:-3001}:3001"  # API服务端口
     volumes:
       - ./data:/app/data  # 持久化数据目录
       - ./logs:/app/logs  # 持久化日志目录
@@ -26,7 +26,26 @@ services:
       start_period: 5s
     networks:
       - github-proxy-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
 
 networks:
   github-proxy-network:
     driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16

@@ -66,10 +66,27 @@ create_env_file() {
     # 生成随机token
     RANDOM_TOKEN=$(openssl rand -hex 16 2>/dev/null || head -c 16 /dev/urandom | xxd -p)
 
+    # 获取可用端口
+    DEFAULT_PORT=3000
+    DEFAULT_API_PORT=3001
+
+    # 检查端口是否被占用
+    if command -v netstat &> /dev/null; then
+      if netstat -tuln | grep -q ":$DEFAULT_PORT "; then
+        warning "端口 $DEFAULT_PORT 已被占用，尝试使用其他端口..."
+        DEFAULT_PORT=3010
+      fi
+
+      if netstat -tuln | grep -q ":$DEFAULT_API_PORT "; then
+        warning "端口 $DEFAULT_API_PORT 已被占用，尝试使用其他端口..."
+        DEFAULT_API_PORT=3011
+      fi
+    fi
+
     cat > .env << EOF
 # 服务器配置
-PORT=3000
-API_PORT=3001
+PORT=$DEFAULT_PORT
+API_PORT=$DEFAULT_API_PORT
 NODE_ENV=production
 
 # 安全配置
@@ -96,6 +113,10 @@ PROXY_DOMAINS_FILE=./data/proxy.txt
 
 # 健康检查配置
 HEALTH_CHECK_INTERVAL=3600000
+
+# Docker配置
+DOCKER_MEMORY_LIMIT=512M
+DOCKER_CPU_LIMIT=1
 EOF
     success "已创建默认配置文件"
   else
@@ -106,7 +127,11 @@ EOF
 # 创建必要的目录
 create_directories() {
   info "创建必要的目录..."
-  mkdir -p data logs
+  mkdir -p data logs backup
+
+  # 设置目录权限
+  chmod -R 755 data logs backup
+
   success "目录创建完成"
 }
 
@@ -129,16 +154,33 @@ deploy_service() {
     # 获取本机IP地址
     IP_ADDRESS=$(hostname -I | awk '{print $1}')
 
+    # 获取配置的端口
+    PORT=$(grep "^PORT=" .env | cut -d '=' -f2 | tr -d ' ' || echo "3000")
+    API_PORT=$(grep "^API_PORT=" .env | cut -d '=' -f2 | tr -d ' ' || echo "3001")
+    TOKEN=$(grep "^SAFE_TOKEN=" .env | cut -d '=' -f2 | tr -d ' ')
+
     info "服务访问信息:"
-    info "- 主服务: http://$IP_ADDRESS:3000"
-    info "- API服务: http://$IP_ADDRESS:3001"
-    info "- 管理Token: $(grep SAFE_TOKEN .env | cut -d '=' -f2)"
+    info "- 主服务: http://$IP_ADDRESS:$PORT"
+    info "- API服务: http://$IP_ADDRESS:$API_PORT"
+    info "- 管理Token: $TOKEN"
 
     info "使用示例:"
-    info "- 获取代理域名: http://$IP_ADDRESS:3000/api/proxy"
-    info "- 代理下载: http://$IP_ADDRESS:3000/https://raw.githubusercontent.com/user/repo/main/file.txt"
-    info "- 多域名并行下载: http://$IP_ADDRESS:3000/multi-download.html"
-    info "- 流量统计: http://$IP_ADDRESS:3000/stats"
+    info "- 获取代理域名: http://$IP_ADDRESS:$PORT/api/proxy"
+    info "- 代理下载: http://$IP_ADDRESS:$PORT/https://raw.githubusercontent.com/user/repo/main/file.txt"
+    info "- 多域名并行下载: http://$IP_ADDRESS:$PORT/multi-download.html"
+    info "- 流量统计: http://$IP_ADDRESS:$PORT/stats"
+
+    # 检查容器健康状态
+    info "检查容器健康状态..."
+    sleep 5
+    CONTAINER_STATUS=$($DOCKER_COMPOSE ps | grep github-proxy | grep -o "Up" || echo "")
+
+    if [ "$CONTAINER_STATUS" = "Up" ]; then
+      success "容器运行正常"
+    else
+      warning "容器可能未正常运行，请检查日志"
+      $DOCKER_COMPOSE logs
+    fi
   else
     error "部署失败，请检查日志"
     $DOCKER_COMPOSE logs
@@ -160,16 +202,26 @@ start_service() {
     # 获取本机IP地址
     IP_ADDRESS=$(hostname -I | awk '{print $1}')
 
-    info "服务访问信息:"
-    info "- 主服务: http://$IP_ADDRESS:3000"
-    info "- API服务: http://$IP_ADDRESS:3001"
+    # 获取配置的端口
+    PORT=$(grep "^PORT=" .env | cut -d '=' -f2 | tr -d ' ' || echo "3000")
+    API_PORT=$(grep "^API_PORT=" .env | cut -d '=' -f2 | tr -d ' ' || echo "3001")
+    TOKEN=$(grep "^SAFE_TOKEN=" .env | cut -d '=' -f2 | tr -d ' ')
 
-    # 显示管理Token
-    if [ -f .env ]; then
-      TOKEN=$(grep SAFE_TOKEN .env | cut -d '=' -f2)
-      if [ ! -z "$TOKEN" ]; then
-        info "- 管理Token: $TOKEN"
-      fi
+    info "服务访问信息:"
+    info "- 主服务: http://$IP_ADDRESS:$PORT"
+    info "- API服务: http://$IP_ADDRESS:$API_PORT"
+    info "- 管理Token: $TOKEN"
+
+    # 检查容器健康状态
+    info "检查容器健康状态..."
+    sleep 5
+    CONTAINER_STATUS=$($DOCKER_COMPOSE ps | grep github-proxy | grep -o "Up" || echo "")
+
+    if [ "$CONTAINER_STATUS" = "Up" ]; then
+      success "容器运行正常"
+    else
+      warning "容器可能未正常运行，请检查日志"
+      $DOCKER_COMPOSE logs
     fi
   else
     error "启动失败，请检查日志"
@@ -178,19 +230,123 @@ start_service() {
   fi
 }
 
+# 停止服务
+stop_service() {
+  info "正在停止GitHub代理服务..."
+  $DOCKER_COMPOSE down
+  if [ $? -eq 0 ]; then
+    success "GitHub代理服务已成功停止!"
+  else
+    error "停止失败，请检查日志"
+    $DOCKER_COMPOSE logs
+    exit 1
+  fi
+}
+
+# 重启服务
+restart_service() {
+  info "正在重启GitHub代理服务..."
+  $DOCKER_COMPOSE restart
+  if [ $? -eq 0 ]; then
+    success "GitHub代理服务已成功重启!"
+
+    # 获取本机IP地址
+    IP_ADDRESS=$(hostname -I | awk '{print $1}')
+
+    # 获取配置的端口
+    PORT=$(grep "^PORT=" .env | cut -d '=' -f2 | tr -d ' ' || echo "3000")
+    API_PORT=$(grep "^API_PORT=" .env | cut -d '=' -f2 | tr -d ' ' || echo "3001")
+
+    info "服务访问信息:"
+    info "- 主服务: http://$IP_ADDRESS:$PORT"
+    info "- API服务: http://$IP_ADDRESS:$API_PORT"
+  else
+    error "重启失败，请检查日志"
+    $DOCKER_COMPOSE logs
+    exit 1
+  fi
+}
+
+# 查看日志
+view_logs() {
+  info "查看GitHub代理服务日志..."
+  $DOCKER_COMPOSE logs $1
+}
+
+# 显示帮助信息
+show_help() {
+  echo "GitHub代理服务Docker部署脚本"
+  echo ""
+  echo "用法: $0 [命令]"
+  echo ""
+  echo "命令:"
+  echo "  start       启动服务"
+  echo "  stop        停止服务"
+  echo "  restart     重启服务"
+  echo "  logs        查看日志"
+  echo "  logs -f     实时查看日志"
+  echo "  status      查看服务状态"
+  echo "  help        显示帮助信息"
+  echo ""
+  echo "如果不指定命令，则执行完整部署流程"
+}
+
+# 查看服务状态
+check_status() {
+  info "查看GitHub代理服务状态..."
+  $DOCKER_COMPOSE ps
+}
+
 # 主函数
 main() {
   echo "===== GitHub代理服务Docker部署脚本 ====="
 
   # 检查命令行参数
-  if [ "$1" == "start" ]; then
-    # 只启动服务
-    check_docker
-    check_docker_compose
-    start_service
-    echo "===== 启动完成 ====="
-    exit 0
-  fi
+  case "$1" in
+    start)
+      # 只启动服务
+      check_docker
+      check_docker_compose
+      start_service
+      echo "===== 启动完成 ====="
+      exit 0
+      ;;
+    stop)
+      # 停止服务
+      check_docker
+      check_docker_compose
+      stop_service
+      echo "===== 停止完成 ====="
+      exit 0
+      ;;
+    restart)
+      # 重启服务
+      check_docker
+      check_docker_compose
+      restart_service
+      echo "===== 重启完成 ====="
+      exit 0
+      ;;
+    logs)
+      # 查看日志
+      check_docker
+      check_docker_compose
+      view_logs "$2"
+      exit 0
+      ;;
+    status)
+      # 查看状态
+      check_docker
+      check_docker_compose
+      check_status
+      exit 0
+      ;;
+    help)
+      # 显示帮助
+      show_help
+      exit 0
+      ;;
+  esac
 
   # 检查环境
   check_docker
