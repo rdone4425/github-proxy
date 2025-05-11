@@ -1,0 +1,31 @@
+# 版本控制
+.git
+.gitignore
+
+# 依赖目录
+node_modules
+npm-debug.log
+
+# 环境配置
+.env
+.env.example
+
+# 数据和日志目录（将通过卷挂载）
+data/*
+logs/*
+
+# 开发和测试文件
+test
+coverage
+.eslintrc.js
+jest.config.js
+
+# Docker相关
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# 其他
+.DS_Store
+*.md
+LICENSE
