@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # 安装依赖
-RUN npm ci --only=production
+RUN npm install --production
 
 # 从builder阶段创建生产镜像
 FROM node:16-alpine
